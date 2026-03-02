@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/errors.dart';
+import '../../core/categories.dart';
+import '../../core/notification_service.dart';
 import '../../data/session/session_store.dart';
 import '../../domain/services/fortune_service.dart';
 
@@ -8,11 +10,14 @@ class PredictionController extends ChangeNotifier {
   PredictionController({
     required FortuneService fortuneService,
     required SessionStore sessionStore,
-  })  : _service = fortuneService,
-        _session = sessionStore;
+    required NotificationService notificationService,
+  }) : _service = fortuneService,
+       _session = sessionStore,
+       _notificationService = notificationService;
 
   final FortuneService _service;
   final SessionStore _session;
+  final NotificationService _notificationService;
 
   bool _loading = false;
   bool get loading => _loading;
@@ -34,6 +39,12 @@ class PredictionController extends ChangeNotifier {
         category: category,
       );
       _prediction = text;
+
+      final meta = FortuneCategories.byCode(category);
+      await _notificationService.showPredictionOpened(
+        categoryTitle: meta.title,
+        predictionText: text,
+      );
     } finally {
       _loading = false;
       notifyListeners();

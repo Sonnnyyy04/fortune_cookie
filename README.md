@@ -1,16 +1,44 @@
-# untitled
+# Fortune Cookie (Flutter + PostgreSQL)
 
-A new Flutter project.
+This project uses direct PostgreSQL access from Flutter (no backend service).
 
-## Getting Started
+## Start database (Docker)
+```bash
+docker compose up -d
+docker compose ps
+```
 
-This project is a starting point for a Flutter application.
+Only one container is used:
+- PostgreSQL: `localhost:5432`
 
-A few resources to get you started if this is your first Flutter project:
+## Run Flutter app
+```bash
+flutter pub get
+flutter run
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Default DB credentials in app:
+- `DB_HOST`: Android emulator `10.0.2.2`, desktop `localhost`
+- `DB_PORT`: `5432`
+- `DB_NAME`: `fortune_cookie`
+- `DB_USER`: `fortune_user`
+- `DB_PASSWORD`: `fortune_password`
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Override if needed:
+```bash
+flutter run --dart-define=DB_HOST=10.0.2.2 --dart-define=DB_PORT=5432 --dart-define=DB_NAME=fortune_cookie --dart-define=DB_USER=fortune_user --dart-define=DB_PASSWORD=fortune_password
+```
+
+## Checks
+```bash
+flutter analyze
+flutter test
+```
+
+## Database schema
+Schema is initialized from [docker/init/01_schema.sql](docker/init/01_schema.sql):
+- `users`
+- `prediction_templates`
+- `user_predictions`
+
+run codex resume 019cae89-3e73-78c2-a053-564160523f39

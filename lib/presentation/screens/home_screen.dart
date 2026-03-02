@@ -17,11 +17,18 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
               const Text(
                 'Печенька с предсказанием',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF3E2723)),
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF3E2723),
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              const Text('Выберите предсказание на сегодня', style: TextStyle(color: Color(0xFF795548))),
+              const Text(
+                'Выберите предсказание на сегодня',
+                style: TextStyle(color: Color(0xFF795548)),
+              ),
               const SizedBox(height: 28),
 
               GestureDetector(
@@ -40,22 +47,48 @@ class HomeScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF3E2723).withOpacity(0.25),
+                        color: const Color(0xFF3E2723).withValues(alpha: 0.25),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
                     ],
                   ),
                   child: const Center(
-                    child: Icon(Icons.cookie, size: 90, color: Color(0xFF3E2723)),
+                    child: Icon(
+                      Icons.cookie,
+                      size: 90,
+                      color: Color(0xFF3E2723),
+                    ),
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 260,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.prediction,
+                      arguments: FortuneCategoryCodes.main,
+                    );
+                  },
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Получить предсказание дня'),
                 ),
               ),
 
               const SizedBox(height: 32),
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Категории', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF3E2723))),
+                child: Text(
+                  'Категории',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF3E2723),
+                  ),
+                ),
               ),
               const SizedBox(height: 14),
 
@@ -88,7 +121,11 @@ class _CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, AppRoutes.prediction, arguments: meta.code);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.prediction,
+          arguments: meta.code,
+        );
       },
       child: Container(
         decoration: BoxDecoration(
@@ -96,7 +133,7 @@ class _CategoryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: meta.color.withOpacity(0.25),
+              color: meta.color.withValues(alpha: 0.25),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -107,7 +144,10 @@ class _CategoryCard extends StatelessWidget {
           children: [
             Icon(meta.icon, size: 40, color: meta.color),
             const SizedBox(height: 8),
-            Text(meta.title, style: TextStyle(fontWeight: FontWeight.w600, color: meta.color)),
+            Text(
+              meta.title,
+              style: TextStyle(fontWeight: FontWeight.w600, color: meta.color),
+            ),
           ],
         ),
       ),

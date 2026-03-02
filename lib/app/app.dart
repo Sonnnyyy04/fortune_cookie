@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/db/app_db.dart';
+import '../core/db_config.dart';
+import '../core/notification_service.dart';
+import '../data/db/postgres_db.dart';
 import '../data/repositories/auth_repository_impl.dart';
 import '../data/repositories/prediction_repository_impl.dart';
 import '../data/session/session_store.dart';
@@ -16,20 +18,22 @@ import 'router.dart';
 import 'theme.dart';
 
 class FortuneCookieApp extends StatelessWidget {
-  const FortuneCookieApp({super.key});
+  const FortuneCookieApp({super.key, required this.notificationService});
+
+  final NotificationService notificationService;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<AppDb>(create: (_) => AppDb.instance),
+        Provider<PostgresDb>(create: (_) => PostgresDb(DbConfig.current)),
         Provider<SessionStore>(create: (_) => SessionStore()),
 
         Provider<AuthRepository>(
-          create: (ctx) => AuthRepositoryImpl(ctx.read<AppDb>()),
+          create: (ctx) => AuthRepositoryImpl(ctx.read<PostgresDb>()),
         ),
         Provider<PredictionRepository>(
-          create: (ctx) => PredictionRepositoryImpl(ctx.read<AppDb>()),
+          create: (ctx) => PredictionRepositoryImpl(ctx.read<PostgresDb>()),
         ),
 
         Provider<FortuneService>(
@@ -48,6 +52,7 @@ class FortuneCookieApp extends StatelessWidget {
           create: (ctx) => PredictionController(
             fortuneService: ctx.read<FortuneService>(),
             sessionStore: ctx.read<SessionStore>(),
+            notificationService: notificationService,
           ),
         ),
         ChangeNotifierProvider<HistoryController>(

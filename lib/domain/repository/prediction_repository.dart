@@ -15,14 +15,13 @@ abstract class PredictionRepository {
   Future<int> insertPrediction({
     required int userId,
     required String category,
-    required String text,
     required String createdAtIso,
     required String dayKey,
   });
 
   Future<List<Prediction>> listPredictions({
     required int userId,
-    String? category, // null = all
+    String? category,
   });
 
   Future<void> deletePrediction(int id);

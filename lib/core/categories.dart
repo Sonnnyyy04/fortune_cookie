@@ -7,8 +7,6 @@ class FortuneCategoryCodes {
   static const health = 'health';
   static const finance = 'finance';
 
-  static const all = 'all';
-
   static const List<String> values = [main, love, career, health, finance];
 }
 

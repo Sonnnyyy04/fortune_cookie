@@ -25,7 +25,10 @@ class _MyPredictionsScreenState extends State<MyPredictionsScreen> {
     final ctrl = context.watch<HistoryController>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Мои предсказания'), automaticallyImplyLeading: false),
+      appBar: AppBar(
+        title: const Text('Мои предсказания'),
+        automaticallyImplyLeading: false,
+      ),
       body: Column(
         children: [
           SizedBox(
@@ -51,73 +54,113 @@ class _MyPredictionsScreenState extends State<MyPredictionsScreen> {
                 : ctrl.items.isEmpty
                 ? const Center(child: Text('Предсказаний пока нет'))
                 : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: ctrl.items.length,
-              itemBuilder: (_, i) {
-                final p = ctrl.items[i];
-                final meta = FortuneCategories.byCode(p.category);
-                return Dismissible(
-                  key: ValueKey(p.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.delete_outline, color: Colors.white),
-                  ),
-                  onDismissed: (_) async {
-                    await ctrl.deleteById(p.id);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Предсказание удалено')),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: meta.color.withOpacity(0.18),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
+                    itemCount: ctrl.items.length,
+                    itemBuilder: (_, i) {
+                      final p = ctrl.items[i];
+                      final meta = FortuneCategories.byCode(p.category);
+                      return Dismissible(
+                        key: ValueKey(p.id),
+                        direction: DismissDirection.endToStart,
+                        confirmDismiss: (_) async {
+                          return showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) {
+                              return AlertDialog(
+                                title: const Text('Удалить предсказание?'),
+                                content: const Text(
+                                  'Это действие нельзя отменить.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(dialogContext).pop(false),
+                                    child: const Text('Отмена'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(dialogContext).pop(true),
+                                    child: const Text('Удалить'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        background: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
                           decoration: BoxDecoration(
-                            color: meta.color.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Icon(meta.icon, color: meta.color),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.white,
+                          ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        onDismissed: (_) async {
+                          await ctrl.deleteById(p.id);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Предсказание удалено'),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: meta.color.withValues(alpha: 0.18),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
                             children: [
-                              Text(p.text, style: const TextStyle(fontWeight: FontWeight.w500)),
-                              const SizedBox(height: 6),
-                              Text('${meta.title} • ${p.dayKey}', style: const TextStyle(color: Colors.grey)),
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: meta.color.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(meta.icon, color: meta.color),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      p.text,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      '${meta.title} • ${p.dayKey}',
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -133,13 +176,19 @@ class _MyPredictionsScreenState extends State<MyPredictionsScreen> {
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: selected ? Colors.white : const Color(0xFF795548)),
+          Icon(
+            icon,
+            size: 16,
+            color: selected ? Colors.white : const Color(0xFF795548),
+          ),
           const SizedBox(width: 6),
           Text(label),
         ],
       ),
       selectedColor: const Color(0xFF8B6914),
-      labelStyle: TextStyle(color: selected ? Colors.white : const Color(0xFF795548)),
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : const Color(0xFF795548),
+      ),
       onSelected: (_) => ctrl.setFilter(code),
     );
   }

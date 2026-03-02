@@ -1,19 +1,30 @@
+import '../../core/errors.dart';
 import '../../domain/entities/prediction.dart';
 import '../../domain/repository/prediction_repository.dart';
-import '../db/app_db.dart';
+import '../db/postgres_db.dart';
 
 class PredictionRepositoryImpl implements PredictionRepository {
   PredictionRepositoryImpl(this._db);
-  final AppDb _db;
 
-  Prediction _mapToPrediction(Map<String, Object?> r) {
+  final PostgresDb _db;
+
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is BigInt) return value.toInt();
+    if (value is num) return value.toInt();
+    return int.parse(value.toString());
+  }
+
+  String _asString(Object? value) => value?.toString() ?? '';
+
+  Prediction _mapRow(List<Object?> row) {
     return Prediction(
-      id: r['id'] as int,
-      userId: r['user_id'] as int,
-      category: r['category'] as String,
-      text: r['text'] as String,
-      createdAtIso: r['created_at'] as String,
-      dayKey: r['day_key'] as String,
+      id: _asInt(row[0]),
+      userId: _asInt(row[1]),
+      category: _asString(row[2]),
+      text: _asString(row[3]),
+      createdAtIso: _asString(row[4]),
+      dayKey: _asString(row[5]),
     );
   }
 
@@ -23,15 +34,28 @@ class PredictionRepositoryImpl implements PredictionRepository {
     required String dayKey,
     required String category,
   }) async {
-    final d = await _db.db;
-    final rows = await d.query(
-      'predictions',
-      where: 'user_id = ? AND day_key = ? AND category = ?',
-      whereArgs: [userId, dayKey, category],
-      limit: 1,
+    final result = await _db.execute(
+      '''
+      SELECT
+        up.id,
+        up.user_id,
+        up.category,
+        pt.text,
+        to_char(up.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at_iso,
+        to_char(up.day_key, 'YYYY-MM-DD') AS day_key
+      FROM user_predictions up
+      JOIN prediction_templates pt ON pt.id = up.template_id
+      WHERE up.user_id = \$1
+        AND up.day_key = \$2::date
+        AND up.category = \$3
+      ORDER BY up.created_at DESC
+      LIMIT 1
+      ''',
+      parameters: [userId, dayKey, category],
     );
-    if (rows.isEmpty) return null;
-    return _mapToPrediction(rows.first);
+
+    if (result.isEmpty) return null;
+    return _mapRow(result.first);
   }
 
   @override
@@ -39,30 +63,64 @@ class PredictionRepositoryImpl implements PredictionRepository {
     required int userId,
     required String dayKey,
   }) async {
-    final d = await _db.db;
-    final res = await d.rawQuery(
-      'SELECT COUNT(*) as cnt FROM predictions WHERE user_id = ? AND day_key = ?',
-      [userId, dayKey],
+    final result = await _db.execute(
+      '''
+      SELECT COUNT(*)
+      FROM user_predictions
+      WHERE user_id = \$1
+        AND day_key = \$2::date
+      ''',
+      parameters: [userId, dayKey],
     );
-    return (res.first['cnt'] as int?) ?? 0;
+
+    if (result.isEmpty) return 0;
+    return _asInt(result.first[0]);
   }
 
   @override
   Future<int> insertPrediction({
     required int userId,
     required String category,
-    required String text,
     required String createdAtIso,
     required String dayKey,
   }) async {
-    final d = await _db.db;
-    return d.insert('predictions', {
-      'user_id': userId,
-      'category': category,
-      'text': text,
-      'created_at': createdAtIso,
-      'day_key': dayKey,
-    });
+    final result = await _db.execute(
+      '''
+      WITH selected_template AS (
+        SELECT id
+        FROM prediction_templates
+        WHERE category = \$1
+          AND is_active = TRUE
+        ORDER BY random()
+        LIMIT 1
+      ),
+      existing AS (
+        SELECT id
+        FROM user_predictions
+        WHERE user_id = \$2
+          AND day_key = \$4::date
+          AND category = \$1
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO user_predictions(user_id, template_id, category, created_at, day_key)
+        SELECT \$2, st.id, \$1, \$3::timestamptz, \$4::date
+        FROM selected_template st
+        WHERE NOT EXISTS (SELECT 1 FROM existing)
+        RETURNING id
+      )
+      SELECT id FROM inserted
+      UNION ALL
+      SELECT id FROM existing
+      LIMIT 1
+      ''',
+      parameters: [category, userId, createdAtIso, dayKey],
+    );
+
+    if (result.isEmpty) {
+      throw AppException('Для выбранной категории нет предсказаний.');
+    }
+    return _asInt(result.first[0]);
   }
 
   @override
@@ -70,35 +128,68 @@ class PredictionRepositoryImpl implements PredictionRepository {
     required int userId,
     String? category,
   }) async {
-    final d = await _db.db;
-    final rows = await d.query(
-      'predictions',
-      where: category == null ? 'user_id = ?' : 'user_id = ? AND category = ?',
-      whereArgs: category == null ? [userId] : [userId, category],
-      orderBy: 'created_at DESC',
-    );
-    return rows.map(_mapToPrediction).toList();
+    final result = category == null
+        ? await _db.execute(
+            '''
+            SELECT
+              up.id,
+              up.user_id,
+              up.category,
+              pt.text,
+              to_char(up.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at_iso,
+              to_char(up.day_key, 'YYYY-MM-DD') AS day_key
+            FROM user_predictions up
+            JOIN prediction_templates pt ON pt.id = up.template_id
+            WHERE up.user_id = \$1
+            ORDER BY up.created_at DESC
+            ''',
+            parameters: [userId],
+          )
+        : await _db.execute(
+            '''
+            SELECT
+              up.id,
+              up.user_id,
+              up.category,
+              pt.text,
+              to_char(up.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at_iso,
+              to_char(up.day_key, 'YYYY-MM-DD') AS day_key
+            FROM user_predictions up
+            JOIN prediction_templates pt ON pt.id = up.template_id
+            WHERE up.user_id = \$1
+              AND up.category = \$2
+            ORDER BY up.created_at DESC
+            ''',
+            parameters: [userId, category],
+          );
+
+    return result.map(_mapRow).toList();
   }
 
   @override
   Future<void> deletePrediction(int id) async {
-    final d = await _db.db;
-    await d.delete('predictions', where: 'id = ?', whereArgs: [id]);
+    await _db.execute(
+      'DELETE FROM user_predictions WHERE id = \$1',
+      parameters: [id],
+      ignoreRows: true,
+    );
   }
 
   @override
   Future<Map<String, int>> statsByCategory(int userId) async {
-    final d = await _db.db;
-    final rows = await d.rawQuery('''
-      SELECT category, COUNT(*) as cnt
-      FROM predictions
-      WHERE user_id = ?
+    final result = await _db.execute(
+      '''
+      SELECT category, COUNT(*)
+      FROM user_predictions
+      WHERE user_id = \$1
       GROUP BY category
-    ''', [userId]);
+      ''',
+      parameters: [userId],
+    );
 
     final out = <String, int>{};
-    for (final r in rows) {
-      out[r['category'] as String] = (r['cnt'] as int?) ?? 0;
+    for (final row in result) {
+      out[_asString(row[0])] = _asInt(row[1]);
     }
     return out;
   }
