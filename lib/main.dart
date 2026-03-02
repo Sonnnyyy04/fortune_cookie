@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
-import 'screens/auth_screen.dart';
-import 'screens/main_shell.dart';
-import 'screens/prediction_screen.dart';
 
 void main() {
   runApp(const FortuneCookieApp());
@@ -63,9 +60,6 @@ class FortuneCookieApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
-        '/auth': (context) => const AuthScreen(),
-        '/home': (context) => const MainShell(),
-        '/prediction': (context) => const PredictionScreen(),
       },
     );
   }
