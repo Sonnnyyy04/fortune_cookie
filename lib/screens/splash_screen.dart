@@ -159,7 +159,7 @@ class _SplashScreenState extends State<SplashScreen>
                   padding: const EdgeInsets.only(bottom: 60),
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Navigate to Auth/Home screen in lab2
+                      Navigator.pushReplacementNamed(context, '/auth');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3E2723),
