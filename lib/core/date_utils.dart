@@ -1,0 +1,10 @@
+class DateUtilsX {
+  static String dayKeyNow() => dayKey(DateTime.now());
+
+  static String dayKey(DateTime dt) {
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+}
